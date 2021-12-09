@@ -1,6 +1,7 @@
 use crate::ffi::*;
 use libfido2_sys::*;
 use std::{collections::HashMap, iter::FromIterator, slice, str};
+use std::convert::TryInto;
 
 /// Owns additional data stored as CBOR on a device.
 #[derive(PartialEq, Eq)]
@@ -24,26 +25,26 @@ impl CBORData {
 
             let aag_uid = fido_cbor_info_aaguid_ptr(cbor_info)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_aaguid_len(cbor_info)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_aaguid_len(cbor_info).try_into().unwrap()));
 
             let pin_protocols = fido_cbor_info_protocols_ptr(cbor_info)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_protocols_len(cbor_info)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cbor_info_protocols_len(cbor_info).try_into().unwrap()))
                 .unwrap_or(&[]);
 
             let extensions = fido_cbor_info_extensions_ptr(cbor_info)
                 .as_ref()
-                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_extensions_len(cbor_info)))
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_extensions_len(cbor_info).try_into().unwrap()))
                 .unwrap_or(Box::new([]));
 
             let ctap_versions = fido_cbor_info_versions_ptr(cbor_info)
                 .as_ref()
-                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_versions_len(cbor_info)))
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_versions_len(cbor_info).try_into().unwrap()))
                 .unwrap_or(Box::new([]));
 
             let options = fido_cbor_info_options_name_ptr(cbor_info)
                 .as_ref()
-                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_options_len(cbor_info)))
+                .map(|ptr| convert_cstr_array_ptr(ptr, fido_cbor_info_options_len(cbor_info).try_into().unwrap()))
                 .map(|names| {
                     let values = fido_cbor_info_options_value_ptr(cbor_info)
                         .as_ref()

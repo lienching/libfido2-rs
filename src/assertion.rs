@@ -1,7 +1,7 @@
 use crate::{ffi::NonNull, FidoError, PublicKey, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
-use std::{ffi::CStr, os::raw, slice};
+use std::{ffi::CStr, os::raw, slice, convert::TryInto};
 
 // Raw assertion is initialized with NULL data
 // Only expose this type when it is properly initialized (returned from device)
@@ -95,38 +95,38 @@ impl Assertion {
         let client_data_hash = unsafe {
             fido_assert_clientdata_hash_ptr(assertion)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_clientdata_hash_len(assertion)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_clientdata_hash_len(assertion).try_into().unwrap()))
                 .unwrap()
         };
 
         (0..self.len()).map(move |i| unsafe {
-            let auth_data = fido_assert_authdata_ptr(assertion, i)
+            let auth_data = fido_assert_authdata_ptr(assertion, i.try_into().unwrap())
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_authdata_len(assertion, i)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_authdata_len(assertion, i.try_into().unwrap()).try_into().unwrap()))
                 .unwrap();
 
-            let hmac_secret = fido_assert_hmac_secret_ptr(assertion, i)
+            let hmac_secret = fido_assert_hmac_secret_ptr(assertion, i.try_into().unwrap())
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_hmac_secret_len(assertion, i)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_hmac_secret_len(assertion, i.try_into().unwrap()).try_into().unwrap()));
 
-            let signature = fido_assert_sig_ptr(assertion, i)
+            let signature = fido_assert_sig_ptr(assertion, i.try_into().unwrap())
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_sig_len(assertion, i)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_sig_len(assertion, i.try_into().unwrap()).try_into().unwrap()))
                 .unwrap();
 
-            let user_id = fido_assert_user_id_ptr(assertion, i)
+            let user_id = fido_assert_user_id_ptr(assertion, i.try_into().unwrap())
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_user_id_len(assertion, i)));
+                .map(|ptr| slice::from_raw_parts(ptr, fido_assert_user_id_len(assertion, i.try_into().unwrap()).try_into().unwrap()));
 
-            let user_name = fido_assert_user_name(assertion, i)
+            let user_name = fido_assert_user_name(assertion, i.try_into().unwrap())
                 .as_ref()
                 .map(|ptr| CStr::from_ptr(ptr));
 
-            let user_display_name = fido_assert_user_display_name(assertion, i)
+            let user_display_name = fido_assert_user_display_name(assertion, i.try_into().unwrap())
                 .as_ref()
                 .map(|ptr| CStr::from_ptr(ptr));
 
-            let user_image_uri = fido_assert_user_icon(assertion, i)
+            let user_image_uri = fido_assert_user_icon(assertion, i.try_into().unwrap())
                 .as_ref()
                 .map(|ptr| CStr::from_ptr(ptr));
 
@@ -154,7 +154,7 @@ impl Assertion {
         self.iter().enumerate().map(move |(i, statement)| unsafe {
             match fido_assert_verify(
                 assertion,
-                i,
+                i.try_into().unwrap(),
                 public_key.credential_type() as raw::c_int,
                 public_key.as_ptr(),
             ) {
@@ -174,7 +174,7 @@ impl Assertion {
 
     /// Returns the amount of statements in this assertion.
     pub fn len(&self) -> usize {
-        unsafe { fido_assert_count(self.raw.as_ptr()) }
+        unsafe { fido_assert_count(self.raw.as_ptr()).try_into().unwrap() }
     }
 
     /*
@@ -183,7 +183,7 @@ impl Assertion {
 
     fn set_count(&mut self, n: usize) -> Result<()> {
         unsafe {
-            match fido_assert_set_count(self.raw.as_ptr_mut(), n) {
+            match fido_assert_set_count(self.raw.as_ptr_mut(), n.try_into().unwrap()) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
             }
@@ -194,9 +194,9 @@ impl Assertion {
         unsafe {
             match fido_assert_set_authdata(
                 self.raw.as_ptr_mut(),
-                idx,
+                idx.try_into().unwrap(),
                 auth_data as *const _ as *const _,
-                auth_data.len(),
+                auth_data.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -208,9 +208,9 @@ impl Assertion {
         unsafe {
             match fido_assert_set_sig(
                 self.raw.as_ptr_mut(),
-                idx,
+                idx.try_into().unwrap(),
                 signature as *const _ as *const _,
-                signature.len(),
+                signature.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -245,7 +245,7 @@ impl Assertion {
             match fido_assert_set_hmac_salt(
                 self.raw.as_ptr_mut(),
                 hmac_salt as *const _ as *const _,
-                hmac_salt.len(),
+                hmac_salt.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -258,7 +258,7 @@ impl Assertion {
             match fido_assert_set_clientdata_hash(
                 self.raw.as_ptr_mut(),
                 client_data_hash as *const _ as *const _,
-                client_data_hash.len(),
+                client_data_hash.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -271,7 +271,7 @@ impl Assertion {
             match fido_assert_allow_cred(
                 self.raw.as_ptr_mut(),
                 id as *const _ as *const _,
-                id.len(),
+                id.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),

@@ -2,6 +2,7 @@ use crate::{ffi::NonNull, FidoError, PublicKey, Result, FIDO_OK};
 use bitflags::bitflags;
 use libfido2_sys::*;
 use std::{error, ffi::CStr, fmt, os::raw, ptr, slice, str::FromStr};
+use std::convert::TryInto;
 
 // Raw Credential is initialized with NULL data
 // Only expose this type when it is properly initialized (returned from device)
@@ -132,34 +133,34 @@ impl Credential {
 
             let auth_data = fido_cred_authdata_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_authdata_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_authdata_len(credential).try_into().unwrap()))
                 .unwrap();
 
             let client_data_hash = fido_cred_clientdata_hash_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_clientdata_hash_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_clientdata_hash_len(credential).try_into().unwrap()))
                 .unwrap();
 
             let id = fido_cred_id_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_id_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_id_len(credential).try_into().unwrap()))
                 .unwrap();
 
             let credential_type = CredentialType::from_ffi(fido_cred_type(credential));
 
             let public_key = fido_cred_pubkey_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_pubkey_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_pubkey_len(credential).try_into().unwrap()))
                 .unwrap();
 
             let signature = fido_cred_sig_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_sig_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_sig_len(credential).try_into().unwrap()))
                 .unwrap();
 
             let x509_certificate = fido_cred_x5c_ptr(credential)
                 .as_ref()
-                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_x5c_len(credential)))
+                .map(|ptr| slice::from_raw_parts(ptr, fido_cred_x5c_len(credential).try_into().unwrap()))
                 .unwrap();
 
             CredentialRef {
@@ -197,7 +198,7 @@ impl Credential {
             match fido_cred_exclude(
                 self.raw.as_ptr_mut(),
                 excluded_ids as *const _ as *const _,
-                excluded_ids.len(),
+                excluded_ids.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -219,7 +220,7 @@ impl Credential {
             match fido_cred_set_clientdata_hash(
                 self.raw.as_ptr_mut(),
                 client_data_hash as *const _ as *const _,
-                client_data_hash.len(),
+                client_data_hash.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -247,7 +248,7 @@ impl Credential {
             match fido_cred_set_user(
                 self.raw.as_ptr_mut(),
                 id as *const _ as *const _,
-                id.len(),
+                id.len().try_into().unwrap(),
                 name.as_ptr(),
                 display_name.map(CStr::as_ptr).unwrap_or(ptr::null()),
                 image_uri.map(CStr::as_ptr).unwrap_or(ptr::null()),
@@ -272,7 +273,7 @@ impl Credential {
             match fido_cred_set_authdata(
                 self.raw.as_ptr_mut(),
                 auth_data as *const _ as *const _,
-                auth_data.len(),
+                auth_data.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -285,7 +286,7 @@ impl Credential {
             match fido_cred_set_x509(
                 self.raw.as_ptr_mut(),
                 x509_certificate as *const _ as *const _,
-                x509_certificate.len(),
+                x509_certificate.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),
@@ -298,7 +299,7 @@ impl Credential {
             match fido_cred_set_sig(
                 self.raw.as_ptr_mut(),
                 signature as *const _ as *const _,
-                signature.len(),
+                signature.len().try_into().unwrap(),
             ) {
                 FIDO_OK => Ok(()),
                 err => Err(FidoError(err)),

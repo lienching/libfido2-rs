@@ -1,4 +1,5 @@
 use crate::{ffi::NonNull, CredentialType, FidoError, Result, FIDO_OK};
+use std::convert::TryInto;
 use libfido2_sys::*;
 use std::os::raw;
 
@@ -13,7 +14,7 @@ impl PublicKey {
     pub(crate) fn new_es256(data: &[u8]) -> Result<PublicKey> {
         unsafe {
             let mut pk = ES256(NonNull::new(es256_pk_new()).unwrap());
-            match es256_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len()) {
+            match es256_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len().try_into().unwrap()) {
                 FIDO_OK => Ok(PublicKey::ES256(pk)),
                 err => Err(FidoError(err)),
             }
@@ -23,7 +24,7 @@ impl PublicKey {
     pub(crate) fn new_rs256(data: &[u8]) -> Result<PublicKey> {
         unsafe {
             let mut pk = RS256(NonNull::new(rs256_pk_new()).unwrap());
-            match rs256_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len()) {
+            match rs256_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len().try_into().unwrap()) {
                 FIDO_OK => Ok(PublicKey::RS256(pk)),
                 err => Err(FidoError(err)),
             }
@@ -33,7 +34,7 @@ impl PublicKey {
     pub(crate) fn new_eddsa(data: &[u8]) -> Result<PublicKey> {
         unsafe {
             let mut pk = EDDSA(NonNull::new(eddsa_pk_new()).unwrap());
-            match eddsa_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len()) {
+            match eddsa_pk_from_ptr(pk.0.as_ptr_mut(), data as *const _ as *const _, data.len().try_into().unwrap()) {
                 FIDO_OK => Ok(PublicKey::EDDSA(pk)),
                 err => Err(FidoError(err)),
             }

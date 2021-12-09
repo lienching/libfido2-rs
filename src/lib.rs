@@ -18,6 +18,7 @@ pub use public_key::*;
 use ffi::NonNull;
 use libfido2_sys::*;
 use std::{error, ffi::CStr, fmt, os::raw, str};
+use std::convert::TryInto;
 
 const FIDO_DEBUG: raw::c_int = libfido2_sys::FIDO_DEBUG as raw::c_int;
 const FIDO_OK: raw::c_int = libfido2_sys::FIDO_OK as raw::c_int;
@@ -111,7 +112,7 @@ impl Fido {
         unsafe {
             // Allocate empty device list
             let mut device_list = DeviceList {
-                raw: NonNull::new(fido_dev_info_new(max_length)).unwrap(),
+                raw: NonNull::new(fido_dev_info_new(max_length.try_into().unwrap())).unwrap(),
                 length: max_length,
                 found: 0,
             };
@@ -121,8 +122,8 @@ impl Fido {
             assert_eq!(
                 fido_dev_info_manifest(
                     device_list.raw.as_ptr_mut(),
-                    max_length,
-                    &mut device_list.found as *mut _
+                    max_length.try_into().unwrap(),
+                    &mut device_list.found.try_into().unwrap() as *mut _
                 ),
                 FIDO_OK
             );

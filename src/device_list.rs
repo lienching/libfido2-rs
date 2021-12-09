@@ -1,6 +1,7 @@
 use crate::{device::DevicePath, ffi::NonNull};
 use libfido2_sys::*;
 use std::{ffi::CStr, str};
+use std::convert::TryInto;
 
 /// Owns a list of [information] about found devices.
 ///
@@ -33,7 +34,7 @@ impl DeviceList {
         let device_list = self.raw.as_ptr();
         (0..self.found).map(move |i| unsafe {
             // Obtain pointer to entry in list (0 based)
-            let device_info = fido_dev_info_ptr(device_list, i);
+            let device_info = fido_dev_info_ptr(device_list, i.try_into().unwrap());
             assert!(!device_info.is_null());
 
             // Acquire information from this entry
@@ -81,7 +82,7 @@ impl Drop for DeviceList {
     fn drop(&mut self) {
         unsafe {
             let mut device_list = self.raw.as_ptr_mut();
-            fido_dev_info_free(&mut device_list as *mut _, self.length);
+            fido_dev_info_free(&mut device_list as *mut _, self.length.try_into().unwrap());
             assert!(device_list.is_null());
         }
     }
