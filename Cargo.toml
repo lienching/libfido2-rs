@@ -2,7 +2,7 @@
 name = "libfido2-rs"
 description = "A safe interface to the libfido2 c library."
 version = "0.1.0"
-authors = ["PvdBerg1998 <PvdBerg1998@users.noreply.github.com>", Charles Lien <lienching31240@gmail.com>]
+authors = ["PvdBerg1998 <PvdBerg1998@users.noreply.github.com>", "Charles Lien <lienching31240@gmail.com>"]
 edition = "2018"
 license-file = "LICENSE.txt"
 readme = "README.md"
